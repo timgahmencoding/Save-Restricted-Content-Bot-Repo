@@ -82,7 +82,7 @@ async def youtube_dl_command(_, message):
     # Check if the command has an argument (YouTube URL)
     if len(message.command) > 1:
         youtube_url = message.command[1]
-        
+
         # Send initial message indicating downloading
         progress_message = await message.reply("Fetching video info...")
 
@@ -97,7 +97,7 @@ async def youtube_dl_command(_, message):
             if video_info['duration'] > 10800:
                 await progress_message.edit_text("Video duration exceeds 3 hours. Not allowed.")
                 return
-            
+
             await progress_message.edit_text("Downloading video...")
 
             # Safe file naming
@@ -125,7 +125,7 @@ async def youtube_dl_command(_, message):
             # Get video metadata
             metadata = video_metadata(original_file)
             caption = f"{video_info['title']}\n\n__**Powered by [Advance Content Saver Bot](https://t.me/advance_content_saver_bot)**__"  # Set caption to the title of the video
-            
+
             # Send the video file and thumbnail
             ggn = message.chat.id
             k = thumbnail(ggn)
@@ -152,15 +152,6 @@ async def youtube_dl_command(_, message):
     else:
         await message.reply("Please provide a YouTube URL after /dl.")
 
-
-def video_metadata(file):
-    vcap = cv2.VideoCapture(f'{file}')
-    width = round(vcap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = round(vcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = vcap.get(cv2.CAP_PROP_FPS)
-    frame_count = vcap.get(cv2.CAP_PROP_FRAME_COUNT)
-    duration = round(frame_count / fps)
-    return {'width': width, 'height': height, 'duration': duration}
 
 REPO_URL = "https://github.com/devgaganin"
 

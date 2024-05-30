@@ -24,8 +24,11 @@ logging.getLogger("telethon").setLevel(logging.INFO)
 
 user_chat_ids = {}
 
-def thumbnail(sender):
-    return f'{sender}.jpg' if os.path.exists(f'{sender}.jpg') else f'thumb.jpg'
+def thumbnail(chat_id):
+    if os.path.exists(f'{chat_id}.jpg'):
+        return f'{chat_id}.jpg'
+    else:
+         return None
 
 async def copy_message_with_chat_id(client, sender, chat_id, message_id):
     # Get the user's set chat ID, if available; otherwise, use the original sender ID
@@ -46,7 +49,7 @@ async def send_message_with_chat_id(client, sender, message, parse_mode=None):
         error_message = f"Error occurred while sending message to chat ID {chat_id}: {str(e)}"
         await client.send_message(sender, error_message)
         await client.send_message(sender, f"Make Bot admin in your Channel - {chat_id} and restart the process after /cancel")
-  
+
 @bot.on(events.NewMessage(incoming=True, pattern='/setchat'))
 async def set_chat_id(event):
     # Extract chat ID from the message
@@ -57,7 +60,7 @@ async def set_chat_id(event):
         await event.reply("Chat ID set successfully!")
     except ValueError:
         await event.reply("Invalid chat ID!")
-      
+
 async def send_video_with_chat_id(client, sender, path, caption, duration, hi, wi, thumb_path, upm):
     # Get the user's set chat ID, if available; otherwise, use the original sender ID
     chat_id = user_chat_ids.get(sender, sender)
@@ -135,7 +138,7 @@ async def check(userbot, client, link):
         except Exception as e:
             logging.info(e)
             return False, "Maybe bot is banned from the chat, or your link is invalid!"
-            
+
 async def get_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
     edit = ""
     chat = ""
@@ -143,8 +146,7 @@ async def get_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
     if msg_id == -1:
         await client.edit_message_text(sender, edit_id, "**Invalid Link!**")
         return None
-    if 't.me/c/'  in msg_link or 't.me/b/' in msg_link:
-        
+    if 't.me/c/' in msg_link or 't.me/b/' in msg_link:
 
         if "t.me/b" not in msg_link:    
             chat = int('-100' + str(msg_link.split("/")[-2]))
@@ -168,8 +170,8 @@ async def get_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                     message_ids=edit_id
                 )
                 #await client.edit_message_text(sender, edit_id, f"message dosnt exist \n{msg.empty}")
-                return None            
-            
+                return None
+
             if msg.media and msg.media==MessageMediaType.WEB_PAGE:
                 a = b = True
                 edit = await client.edit_message_text(sender, edit_id, "Cloning.")
@@ -194,22 +196,15 @@ async def get_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                     b = False
                 if a and b:
                     await send_message_with_chat_id(client, sender, msg.text.markdown, parse_mode=ParseMode.MARKDOWN)
-                
-                '''await client.send_message(sender, msg.text.html, parse_mode = 'html')
-                   await client.send_message(sender, msg.text.html, parse_mode = 'md')
-                   await client.send_message(sender, msg.text.markdown, parse_mode = 'html')
-                   await client.send_message(sender, msg.text.markdown, parse_mode = 'md')
-                   await client.send_message(sender, msg.text.markdown)
-                '''
                 await edit.delete()
                 return None
             if msg.media==MessageMediaType.POLL:
                 #await client.send_message(sender,'poll media cant be saved')
                 await client.edit_message_text(sender, edit_id, 'poll media cant be saved')
                 #await edit.delete()
-                return 
+                return
             edit = await client.edit_message_text(sender, edit_id, "Trying to Download.")
-            
+
             file = await userbot.download_media(
                 msg,
                 progress=progress_for_pyrogram,
@@ -219,12 +214,12 @@ async def get_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                     edit,
                     time.time()
                 )
-            )  
-          
+            )
+
             path = file
             await edit.delete()
             upm = await client.send_message(sender, '__Preparing to Upload!__')
-            
+
             caption = str(file)
             if msg.caption is not None:
                 caption = msg.caption
@@ -242,10 +237,10 @@ async def get_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                 if file_n != '':
                     #path = ''
                     if '.' in file_n:
-                        
+
                         path = f'/app/downloads/{file_n}'
                     else:
-                        
+
                         path = f'/app/downloads/{file_n}.' + str(file).split(".")[-1]
 
                     os.rename(file, path)
@@ -255,7 +250,7 @@ async def get_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                 except Exception as e:
                     logging.info(e)
                     thumb_path = None
-                
+
                 caption = f"{msg.caption}\n\n__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__" if msg.caption else "__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__"
                 await send_video_with_chat_id(client, sender, path, caption, duration, hi, wi, thumb_path, upm)
             elif str(file).split(".")[-1] in ['jpg', 'jpeg', 'png', 'webp']:
@@ -269,7 +264,7 @@ async def get_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                     os.rename(file, path)
                     file = path
 
-                
+
                 caption = f"{msg.caption}\n\n__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__" if msg.caption else "__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__"
                 await upm.edit("__Uploading photo...__")
 
@@ -285,7 +280,7 @@ async def get_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                     os.rename(file, path)
                     file = path
                 thumb_path = "thumb.jpg"
-                
+
                 caption = f"{msg.caption}\n\n__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__" if msg.caption else "__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__"
                 await send_document_with_chat_id(client, sender, path, caption, thumb_path, upm)
             os.remove(file)
@@ -299,12 +294,12 @@ async def get_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
         chat =  msg_link.split("/")[-2]
         await copy_message_with_chat_id(client, sender, chat, msg_id)
         await edit.delete()
-        return None   
- 
+        return None
+
 async def get_bulk_msg(userbot, client, sender, msg_link, i):
     x = await client.send_message(sender, "Processing!")
     file_name = ''
-    await get_msg(userbot, client, sender, x.id, msg_link, i, file_name) 
+    await get_msg(userbot, client, sender, x.id, msg_link, i, file_name)
 
 async def ggn_new(userbot, client, sender, edit_id, msg_link, i, file_n):
     edit = ""
@@ -313,7 +308,7 @@ async def ggn_new(userbot, client, sender, edit_id, msg_link, i, file_n):
     if msg_id == -1:
         await client.edit_message_text(sender, edit_id, "**Invalid Link!**")
         return None
-    if 't.me/c/'  in msg_link or 't.me/b/' in msg_link:
+    if 't.me/c/' in msg_link or 't.me/b/' in msg_link:
         if "t.me/b" not in msg_link:
             parts = msg_link.split("/")
             chat = int('-100' + str(parts[4]))
@@ -337,8 +332,8 @@ async def ggn_new(userbot, client, sender, edit_id, msg_link, i, file_n):
                     message_ids=edit_id
                 )
                 #await client.edit_message_text(sender, edit_id, f"message dosnt exist \n{msg.empty}")
-                return None            
-            
+                return None
+
             if msg.media and msg.media==MessageMediaType.WEB_PAGE:
                 a = b = True
                 edit = await client.edit_message_text(sender, edit_id, "Cloning.")
@@ -363,13 +358,6 @@ async def ggn_new(userbot, client, sender, edit_id, msg_link, i, file_n):
                     b = False
                 if a and b:
                     await send_message_with_chat_id(client, sender, msg.text.markdown, parse_mode=ParseMode.MARKDOWN)
-                
-                '''await client.send_message(sender, msg.text.html, parse_mode = 'html')
-                   await client.send_message(sender, msg.text.html, parse_mode = 'md')
-                   await client.send_message(sender, msg.text.markdown, parse_mode = 'html')
-                   await client.send_message(sender, msg.text.markdown, parse_mode = 'md')
-                   await client.send_message(sender, msg.text.markdown)
-                '''
                 await edit.delete()
                 return None
             if msg.media==MessageMediaType.POLL:
@@ -411,10 +399,10 @@ async def ggn_new(userbot, client, sender, edit_id, msg_link, i, file_n):
                 if file_n != '':
                     #path = ''
                     if '.' in file_n:
-                        
+
                         path = f'/app/downloads/{file_n}'
                     else:
-                        
+
                         path = f'/app/downloads/{file_n}.' + str(file).split(".")[-1]
 
                     os.rename(file, path)
@@ -424,7 +412,7 @@ async def ggn_new(userbot, client, sender, edit_id, msg_link, i, file_n):
                 except Exception as e:
                     logging.info(e)
                     thumb_path = None
-                
+
                 caption = f"{msg.caption}\n\n__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__" if msg.caption else "__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__"
                 await send_video_with_chat_id(client, sender, path, caption, duration, hi, wi, thumb_path, upm)
             elif str(file).split(".")[-1] in ['jpg', 'jpeg', 'png', 'webp']:
@@ -438,7 +426,7 @@ async def ggn_new(userbot, client, sender, edit_id, msg_link, i, file_n):
                     os.rename(file, path)
                     file = path
 
-                
+
                 caption = f"{msg.caption}\n\n__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__" if msg.caption else "__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__"
                 await upm.edit("__Uploading photo...__")
 
@@ -454,7 +442,7 @@ async def ggn_new(userbot, client, sender, edit_id, msg_link, i, file_n):
                     os.rename(file, path)
                     file = path
                 thumb_path = "thumb.jpg"
-                
+
                 caption = f"{msg.caption}\n\n__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__" if msg.caption else "__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__"
                 await send_document_with_chat_id(client, sender, path, caption, thumb_path, upm)
             os.remove(file)
@@ -468,7 +456,7 @@ async def ggn_new(userbot, client, sender, edit_id, msg_link, i, file_n):
         chat =  msg_link.split("/")[-2]
         await copy_message_with_chat_id(client, sender, chat, msg_id)
         await edit.delete()
-        return None   
+        return None
 
 
 async def peer_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
@@ -501,8 +489,8 @@ async def peer_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                     message_ids=edit_id
                 )
                 #await client.edit_message_text(sender, edit_id, f"message dosnt exist \n{msg.empty}")
-                return None            
-            
+                return None
+
             if msg.media and msg.media==MessageMediaType.WEB_PAGE:
                 a = b = True
                 edit = await client.edit_message_text(sender, edit_id, "Cloning.")
@@ -527,13 +515,6 @@ async def peer_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                     b = False
                 if a and b:
                     await send_message_with_chat_id(client, sender, msg.text.markdown, parse_mode=ParseMode.MARKDOWN)
-                
-                '''await client.send_message(sender, msg.text.html, parse_mode = 'html')
-                   await client.send_message(sender, msg.text.html, parse_mode = 'md')
-                   await client.send_message(sender, msg.text.markdown, parse_mode = 'html')
-                   await client.send_message(sender, msg.text.markdown, parse_mode = 'md')
-                   await client.send_message(sender, msg.text.markdown)
-                '''
                 await edit.delete()
                 return None
             if msg.media==MessageMediaType.POLL:
@@ -552,12 +533,12 @@ async def peer_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                     edit,
                     time.time()
                 )
-            )  
-          
+            )
+
             path = file
             await edit.delete()
             upm = await client.send_message(sender, '__Preparing to Upload!__')
-            
+
             caption = str(file)
             if msg.caption is not None:
                 caption = msg.caption
@@ -575,10 +556,10 @@ async def peer_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                 if file_n != '':
                     #path = ''
                     if '.' in file_n:
-                        
+
                         path = f'/app/downloads/{file_n}'
                     else:
-                        
+
                         path = f'/app/downloads/{file_n}.' + str(file).split(".")[-1]
 
                     os.rename(file, path)
@@ -588,7 +569,7 @@ async def peer_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                 except Exception as e:
                     logging.info(e)
                     thumb_path = None
-                
+
                 caption = f"{msg.caption}\n\n__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__" if msg.caption else "__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__"
                 await send_video_with_chat_id(client, sender, path, caption, duration, hi, wi, thumb_path, upm)
             elif str(file).split(".")[-1] in ['jpg', 'jpeg', 'png', 'webp']:
@@ -602,7 +583,7 @@ async def peer_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                     os.rename(file, path)
                     file = path
 
-                
+
                 caption = f"{msg.caption}\n\n__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__" if msg.caption else "__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__"
                 await upm.edit("__Uploading photo...__")
 
@@ -618,7 +599,7 @@ async def peer_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
                     os.rename(file, path)
                     file = path
                 thumb_path = "thumb.jpg"
-                
+
                 caption = f"{msg.caption}\n\n__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__" if msg.caption else "__Unrestricted by **[Team SPY](https://t.me/dev_gagan)**__"
                 await send_document_with_chat_id(client, sender, path, caption, thumb_path, upm)
             os.remove(file)
@@ -632,12 +613,12 @@ async def peer_msg(userbot, client, sender, edit_id, msg_link, i, file_n):
         chat =  msg_link.split("/")[-2]
         await copy_message_with_chat_id(client, sender, chat, msg_id)
         await edit.delete()
-        return None   
- 
+        return None
+
 async def peer_bulk_msg(userbot, client, sender, msg_link, i):
     x = await client.send_message(sender, "Processing!")
     file_name = ''
-    await peer_msg(userbot, client, sender, x.id, msg_link, i, file_name) 
+    await peer_msg(userbot, client, sender, x.id, msg_link, i, file_name)
 
 
 async def peecheck(userbot, client, link):

@@ -1,6 +1,4 @@
-#GitHub github.com/devgaganin
-
-https://devgagan.in/wp-content/uploads/2023/12/gagantelethon.zip
+Telethon
 tgcrypto
 Pyrogram==2.0.93
 psutil

@@ -1,5 +1,3 @@
-#Developer @dev_gagan
-
 import sys
 import logging
 import importlib

@@ -4,19 +4,18 @@ import os
 import sys
 import asyncio
 import json
+import re
 import pymongo
 import zipfile
 import requests
 import shutil
 import asyncio
 
-import re
+from main.plugins.pyroplug import check, get_bulk_msg, peer_bulk_msg, peecheck
+from main.plugins.helpers import get_link, screenshot
 
 from .. import bot as gagan
 from .. import userbot, Bot, AUTH, SUDO_USERS
-
-from main.plugins.pyroplug import check, get_bulk_msg, peer_bulk_msg, peecheck
-from main.plugins.helpers import get_link, screenshot
 
 from telethon import events, Button, errors
 from telethon.tl.types import DocumentAttributeVideo
@@ -55,28 +54,28 @@ def load_ids_data():
         return {}
 
 ids_data = load_ids_data()
-      
+
 @gagan.on(events.NewMessage(incoming=True, pattern='/cancel'))
 async def cancel_command(event):
     user_id = event.sender_id
     if str(user_id) in ids_data:
         del ids_data[str(user_id)]
         save_ids_data(ids_data)
-        
+
         # If the user has an ongoing batch, remove it from the batch data
         if str(user_id) in batch_data:
             del batch_data[str(user_id)]
             save_batch_data(batch_data)
-            
+
         # Check if the user has ongoing chunk tasks
         if str(user_id) in chunk_tasks:
             # Cancel ongoing tasks
             for task in chunk_tasks[str(user_id)]:
                 task.cancel()
-                
+
             # Clear the chunk tasks list
             del chunk_tasks[str(user_id)]
-            
+
         await event.respond("Operation canceled.")
     else:
         await event.respond("There is no operation to cancel.")
@@ -133,7 +132,7 @@ def reset_log_file():
         with open(temp_log_file, "w"):
             pass
         print("Log file reset")  # Debugging statement
-        
+
         # Recreate StreamToLogger instances after resetting the log file
         recreate_log_handlers()
     except Exception as e:
@@ -149,7 +148,7 @@ def recreate_log_handlers():
     stderr_logger = logging.getLogger('STDERR')
     sl_err = StreamToLogger(stderr_logger, logging.ERROR, temp_log_file)
     sys.stderr = sl_err
-    
+
     # Update root logger handlers
     logging.root.handlers = []
     logging.basicConfig(filename=temp_log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -169,7 +168,7 @@ asyncio.ensure_future(schedule_log_reset())
 @gagan.on(events.NewMessage(incoming=True, pattern='/logs'))
 async def send_log(event):
     user_id = event.sender_id
-    
+
     # Check if the log file exists
     if os.path.exists(temp_log_file):
         # Send the log file as a document to the user
@@ -181,11 +180,11 @@ async def send_log(event):
 @gagan.on(events.NewMessage(incoming=True, pattern='/batch'))
 async def _bulk(event):
     user_id = event.sender_id
-  
+
     if user_id in batch_data:
         return await event.reply("You've already started one batch, wait for it to complete!")
 
-    async with gagan.conversation(event.chat_id) as conv: 
+    async with gagan.conversation(event.chat_id) as conv:
         try:
             await conv.send_message(f"Send me the message link you want to start saving from, as a reply to this message.", buttons=Button.force_reply())
             link = await conv.get_reply()
@@ -198,8 +197,8 @@ async def _bulk(event):
             _range = await conv.get_reply()
             try:
                 value = int(_range.text)
-                if value > 10000:
-                  return await conv.send_message("You can only get upto 10000 files in a single batch...")
+                if value > 100000:
+                  return await conv.send_message("You can only get upto 100.000 files in a single batch...")
             except ValueError:
                 return await conv.send_message("Range must be an integer!")
 
@@ -214,10 +213,10 @@ async def _bulk(event):
             batch_data[str(user_id)] = True
             save_batch_data(batch_data)
 
-            cd = await conv.send_message("**Batch process ongoing...**\n\nProcess completed: ", 
-                                    buttons=[[Button.url("Join Channel", url="http://t.me/devggn")]])
-            co = await r_batch(userbot, Bot, user_id, cd, _link) 
-            try: 
+            cd = await conv.send_message("**Batch process ongoing.**\n\nProcess completed: ", 
+                                    buttons=[[Button.inline("CANCEL❌", data="cancel")]])
+            co = await r_batch(userbot, Bot, user_id, cd, _link)
+            try:
                 if co == -2:
                     await Bot.send_message(user_id, "Batch successfully completed!")
                     await cd.edit(f"**Batch process ongoing.**\n\nProcess completed: {value} \n\n Batch successfully completed! ")
@@ -235,34 +234,34 @@ async def _bulk(event):
 
 async def r_batch(userbot, client, sender, countdown, link):
     for i in range(len(ids_data[str(sender)])):
-        timer = 30  # Increased default timer value
+        timer = 6
 
-        if i < 25:
-            timer = 20
-        elif 250 <= i < 100:
-            timer = 25
-        elif 100 <= i < 1000:
-            timer = 30
-        elif 1000 <= i < 5000:
-            timer = 35
-        elif 5000 <= i < 10000:
-            timer = 40
-        elif 10000 <= i < 20000:
-            timer = 45
-        elif i >= 20000:
-            timer = 60  # Increased timer value for larger counts
+        if i < 250:
+            timer = 2
+        elif i < 1000 and i > 100:
+            timer = 3
+        elif i < 10000 and i > 1000:
+            timer = 4
+        elif i < 50000 and i > 10000:
+            timer = 5
+        elif i < 100000 and i > 50000:
+            timer = 6
+        elif i < 200000 and i > 100000:
+            timer = 8
+        elif i < 1000000:
+            timer = 10
 
         # Adjust the timer for links other than channel links
         if 't.me/c/' not in link:
-            timer = 10 if i < 500 else 30  # Increased timer values for non-channel links
+            timer = 10 if i < 500 else 2  # Increased timer values for non-channel links
 
-        try: 
+        try:
             count_down = f"**Batch process ongoing.**\n\nProcess completed: {i+1}"
             integer = int(link.split("/")[-1]) + int(ids_data[str(sender)][i])
             await get_bulk_msg(userbot, client, sender, link, integer)
             protection = await client.send_message(sender, f"Sleeping for `{timer}` seconds to avoid Floodwaits and Protect account!")
-            await countdown.edit(count_down, 
-                                 buttons=[[Button.url("Join Channel", url="https://t.me/devggn")]])
+            await countdown.edit(count_down,
+                                 buttons=[[Button.inline("CANCEL❌", data="cancel")]])
             await asyncio.sleep(timer)
             await protection.delete()
         except IndexError as ie:
@@ -284,12 +283,12 @@ async def r_batch(userbot, client, sender, countdown, link):
                 except Exception as e:
                     logger.info(e)
                     if countdown.text != count_down:
-                        await countdown.edit(count_down, buttons=[[Button.url("Join Channel", url="http://t.me/devggn")]])
+                        await countdown.edit(count_down, buttons=[[Button.inline("CANCEL❌", data="cancel")]])
         except Exception as e:
-            #logger.info(e)
-            #await client.send_message(sender, f"An error occurred during cloning, batch will continue.\n\n**Error:** {str(e)}")
+            logger.info(e)
+            await client.send_message(sender, f"An error occurred during cloning, batch will continue.\n\n**Error:** {str(e)}")
             if countdown.text != count_down:
-                await countdown.edit(count_down, buttons=[[Button.url("Join Channel", url="https://t.me/devggn")]])
+                await countdown.edit(count_down, buttons=[[Button.inline("CANCEL❌", data="cancel")]])
         n = i + 1
         if n == len(ids_data[str(sender)]):
             return -2
@@ -298,11 +297,11 @@ async def r_batch(userbot, client, sender, countdown, link):
 @gagan.on(events.NewMessage(incoming=True, pattern='/invalid'))
 async def _bulk(event):
     user_id = event.sender_id
-  
+
     if user_id in batch_data:
         return await event.reply("You've already started one batch, wait for it to complete!")
 
-    async with gagan.conversation(event.chat_id) as conv: 
+    async with gagan.conversation(event.chat_id) as conv:
         try:
             await conv.send_message(f"Send me the message link you want to start saving from, as a reply to this message.", buttons=Button.force_reply())
             link = await conv.get_reply()
@@ -331,10 +330,10 @@ async def _bulk(event):
             batch_data[str(user_id)] = True
             save_batch_data(batch_data)
 
-            cd = await conv.send_message("**Batch process ongoing...**\n\nProcess completed: ", 
-                                    buttons=[[Button.url("Join Channel", url="http://t.me/devggn")]])
-            co = await peer_batch(userbot, Bot, user_id, cd, _link) 
-            try: 
+            cd = await conv.send_message("**Batch process ongoing.**\n\nProcess completed: ",
+                                    buttons=[[Button.inline("CANCEL❌", data="cancel")]])
+            co = await peer_batch(userbot, Bot, user_id, cd, _link)
+            try:
                 if co == -2:
                     await Bot.send_message(user_id, "Batch successfully completed!")
                     await cd.edit(f"**Batch process ongoing.**\n\nProcess completed: {value} \n\n Batch successfully completed! ")
@@ -373,13 +372,13 @@ async def peer_batch(userbot, client, sender, countdown, link):
         if 't.me/c/' not in link:
             timer = 10 if i < 500 else 30  # Increased timer values for non-channel links
 
-        try: 
+        try:
             count_down = f"**Batch process ongoing.**\n\nProcess completed: {i+1}"
             integer = int(link.split("/")[-1]) + int(ids_data[str(sender)][i])
             await get_bulk_msg(userbot, client, sender, link, integer)
             protection = await client.send_message(sender, f"Sleeping for `{timer}` seconds to avoid Floodwaits and Protect account!")
-            await countdown.edit(count_down, 
-                                 buttons=[[Button.url("Join Channel", url="https://t.me/devggn")]])
+            await countdown.edit(count_down,
+                                 buttons=[[Button.inline("CANCEL❌", data="cancel")]])
             await asyncio.sleep(timer)
             await protection.delete()
         except IndexError as ie:
@@ -388,7 +387,7 @@ async def peer_batch(userbot, client, sender, countdown, link):
             break
         except FloodWait as fw:
             if int(fw.value) > 300:
-                await client.send_message(sender, f'You have floodwaits of {fw.value} seconds, cancelling batch') 
+                await client.send_message(sender, f'You have floodwaits of {fw.value} seconds, cancelling batch')
                 ids_data.pop(str(sender))
                 break
             else:
@@ -401,12 +400,12 @@ async def peer_batch(userbot, client, sender, countdown, link):
                 except Exception as e:
                     logger.info(e)
                     if countdown.text != count_down:
-                        await countdown.edit(count_down, buttons=[[Button.url("Join Channel", url="http://t.me/devggn")]])
+                        await countdown.edit(count_down, buttons=[[Button.inline("CANCEL❌", data="cancel")]])
         except Exception as e:
-            #logger.info(e)
+            logger.info(e)
             #await client.send_message(sender, f"An error occurred during cloning, batch will continue.\n\n**Error:** {str(e)}")
             if countdown.text != count_down:
-                await countdown.edit(count_down, buttons=[[Button.url("Join Channel", url="https://t.me/devggn")]])
+                await countdown.edit(count_down, buttons=[[Button.inline("CANCEL❌", data="cancel")]])
         n = i + 1
         if n == len(ids_data[str(sender)]):
             return -2

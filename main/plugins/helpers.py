@@ -1,18 +1,17 @@
-#Github.com/devgaganin
-
-from pyrogram.errors import FloodWait, InviteHashInvalid, InviteHashExpired, UserAlreadyParticipant
-from telethon import errors, events
 
 import asyncio, subprocess, re, os, time
 from pathlib import Path
 from datetime import datetime as dt
 import math
+
+import logging
+
+from pyrogram.errors import FloodWait, InviteHashInvalid, InviteHashExpired, UserAlreadyParticipant
+
 import cv2
 
 from telethon.errors.rpcerrorlist import UserNotParticipantError
 from telethon.tl.functions.channels import GetParticipantRequest
-
-import logging
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -21,7 +20,7 @@ logging.getLogger("pyrogram").setLevel(logging.WARNING)
 logging.getLogger("telethon").setLevel(logging.WARNING)
 
 
-#to get width, height and duration(in sec) of a video
+# to get width, height and duration(in sec) of a video --------------------------------------
 def video_metadata(file):
     vcap = cv2.VideoCapture(f'{file}')
     width = round(vcap.get(cv2.CAP_PROP_FRAME_WIDTH ))
@@ -31,7 +30,7 @@ def video_metadata(file):
     duration = round(frame_count / fps)
     return {'width' : width, 'height' : height, 'duration' : duration }
 
-#Join private chat-------------------------------------------------------------------------------------------------------------
+# Join private chat ------------------------------------------------------------------------
 
 async def join(client, invite_link):
     try:
@@ -46,10 +45,10 @@ async def join(client, invite_link):
     except Exception as e:
         print(e)
         return f"{e} \nCould not join, try joining manually."
-    
-    
-    
-#----------------------------------
+
+
+
+# force_sub ----------------------------------
 async def force_sub(client, channel, id, ft):
     s, r = False, None
     try:
@@ -62,7 +61,7 @@ async def force_sub(client, channel, id, ft):
         s, r = True, "ERROR: Add in ForceSub channel, or check your channel id."
     return s, r
 
-#------------------------------
+# ------------------------------
 def TimeFormatter(milliseconds) -> str:
     milliseconds = int(milliseconds) * 1000
     seconds, milliseconds = divmod(int(milliseconds), 1000)
@@ -78,7 +77,7 @@ def TimeFormatter(milliseconds) -> str:
     )
     return tmp[:-2]
 
-#--------------------------------------------
+# --------------------------------------------
 def humanbytes(size):
     size = int(size)
     # https://stackoverflow.com/a/49361727/4723940
@@ -94,7 +93,7 @@ def humanbytes(size):
     return f"{str(round(size, 2))} {Dic_powerN[n]}B"
 
 
-#Regex---------------------------------------------------------------------------------------------------------------
+# Regex -------------------------------------------------------------------------------------
 #to get the url from event
 
 def get_link(string):
@@ -104,9 +103,8 @@ def get_link(string):
         return link if (link := [x[0] for x in url][0]) else False
     except Exception:
         return False
-    
-#Screenshot---------------------------------------------------------------------------------------------------------------
 
+# Screenshot --------------------------------------------------------------------------------
 def hhmmss(seconds):
     return time.strftime('%H:%M:%S',time.gmtime(seconds))
 
@@ -136,4 +134,4 @@ async def screenshot(video, duration, sender):
     if os.path.isfile(out):
         return out
     else:
-        None       
+        None

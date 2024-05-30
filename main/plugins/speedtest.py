@@ -1,19 +1,22 @@
-#from threading import Thread   #
+
 from time import time
-#from charset_normalizer import logging
-from speedtest import Speedtest
 import math
-#from bot.helper.ext_utils.bot_utils import get_readable_time
-#from telegram.ext import CommandHandler #no
-#from bot.helper.telegram_helper.filters import CustomFilters #n
-#from bot import botStartTime #e
-from main.__main__ import botStartTime
-#from bot.helper.telegram_helper.bot_commands import BotCommands #no
-#from bot.helper.telegram_helper.message_utils import auto_delete_message, sendMessage, deleteMessage, sendPhoto, editMessage  #wow
-#from bot.helper.ext_utils.bot_utils import get_readable_file_size
+
+import logging
+
+from speedtest import Speedtest
+
 from telethon import events
-from .. import bot as gagan
-from .. import Bot, AUTH, SUDO_USERS
+from main.__init__ import bot as TelethonBot
+from main.__init__ import SUDO_USERS
+
+from main.__main__ import botStartTime
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+logging.getLogger("pyrogram").setLevel(logging.WARNING)
+logging.getLogger("telethon").setLevel(logging.WARNING)
 
 SIZE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
 
@@ -48,7 +51,11 @@ def get_readable_file_size(size_in_bytes) -> str:
         return 'File too large'
 
 
-@gagan.on(events.NewMessage(incoming=True, from_users=SUDO_USERS, pattern='/speedtest'))
+@TelethonBot.on(
+    events.NewMessage(incoming=True,
+                      from_users=SUDO_USERS,
+                      pattern="/speedtest",
+                      func=lambda e: e.is_private))
 async def speedtest(event):
     speed = await event.reply("Running Speed Test. Wait about some secs.")  #edit telethon
     test = Speedtest()
@@ -83,21 +90,14 @@ async def speedtest(event):
 ╰ <b>ISP Rating:</b> <code>{result['client']['isprating']}</code>
 '''
     try:
-        #pho = sendPhoto(text=string_speed, bot=context.bot, message=update.message, photo=path)  #edit
-        #await bot.send_file(event.sender_id, path, caption=string_speed, parse_mode='html')
         await event.reply(string_speed,file=path,parse_mode='html')
         await speed.delete()
-        #deleteMessage(context.bot, speed) #e  speed.delete
-        #Thread(target=auto_delete_message, args=(context.bot, update.message, pho)).start() #r
     except Exception as g:
         print(g)
         logger.info(g)
         #logging.error(str(g))  #r
-        #editMessage(string_speed, speed)
         await speed.delete()
         await event.reply(string_speed,parse_mode='html' )
-        #await speed.edit(string_speed)
-        #Thread(target=auto_delete_message, args=(context.bot, update.message, speed)).start() #r
 
 def speed_convert(size, byte=True):
     if not byte: size = size / 8
@@ -108,8 +108,3 @@ def speed_convert(size, byte=True):
         size /= power
         zero += 1
     return f"{round(size, 2)} {units[zero]}"
-
-#speed_handler = CommandHandler(BotCommands.SpeedCommand, speedtest,
- #   CustomFilters.authorized_chat | CustomFilters.authorized_user)
-
-#dispatcher.add_handler(speed_handler)
